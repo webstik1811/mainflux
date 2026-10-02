@@ -1,0 +1,1187 @@
+# Generated for Coolify from docker/docker-compose.yml + docker/.env.
+# - Host ports removed (Traefik routes the domain to nginx:80); only MQTT 1883/8883 and CoAP 5683 stay published.
+# - Secrets come from Coolify magic variables (SERVICE_PASSWORD_*); SMTP settings via MF_EMAIL_* env vars.
+# Regenerate with: python docker/gen-coolify.py .  (from repo root)
+services:
+  alarms:
+    depends_on:
+      alarms-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_ALARMS_DB: alarms
+      MF_ALARMS_DB_HOST: alarms-db
+      MF_ALARMS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_ALARMS_DB_PORT: '5432'
+      MF_ALARMS_DB_USER: mainflux
+      MF_ALARMS_ES_URL: redis://es-redis:6379/0
+      MF_ALARMS_HTTP_PORT: '9026'
+      MF_ALARMS_LOG_LEVEL: debug
+      MF_ALARMS_SERVER_CERT: ''
+      MF_ALARMS_SERVER_KEY: ''
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/alarms:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  alarms-db:
+    environment:
+      POSTGRES_DB: alarms
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-alarms-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  audit:
+    depends_on:
+      audit-db:
+        condition: service_started
+        required: true
+      auth:
+        condition: service_started
+        required: true
+      es-redis:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUDIT_DB: audit
+      MF_AUDIT_DB_HOST: audit-db
+      MF_AUDIT_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_AUDIT_DB_PORT: '5432'
+      MF_AUDIT_DB_USER: mainflux
+      MF_AUDIT_ES_URL: redis://es-redis:6379/0
+      MF_AUDIT_HTTP_PORT: '9030'
+      MF_AUDIT_LOG_LEVEL: debug
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_THINGS_CA_CERTS: ''
+      MF_THINGS_CLIENT_TLS: 'false'
+    image: mainfluxlabs/audit:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  audit-db:
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-audit-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  auth:
+    depends_on:
+      auth-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_DB: auth
+      MF_AUTH_DB_HOST: auth-db
+      MF_AUTH_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_AUTH_DB_PORT: '5432'
+      MF_AUTH_DB_USER: mainflux
+      MF_AUTH_ES_BUFFER_SIZE: '10000'
+      MF_AUTH_ES_STREAM_MAXLEN: '100000'
+      MF_AUTH_ES_URL: redis://es-redis:6379/0
+      MF_AUTH_GRPC_PORT: '8181'
+      MF_AUTH_HTTP_PORT: '8189'
+      MF_AUTH_LOG_LEVEL: debug
+      MF_AUTH_LOGIN_TOKEN_DURATION: 1h
+      MF_AUTH_MAX_SESSION_DURATION: 168h
+      MF_AUTH_SECRET: ${SERVICE_PASSWORD_64_AUTHSECRET}
+      MF_EMAIL_FROM_ADDRESS: ${MF_EMAIL_FROM_ADDRESS:-noreply@scalewest.com}
+      MF_EMAIL_FROM_NAME: ${MF_EMAIL_FROM_NAME:-Mainflux}
+      MF_EMAIL_HOST: ${MF_EMAIL_HOST:-smtp.example.com}
+      MF_EMAIL_PASSWORD: ${MF_EMAIL_PASSWORD:-}
+      MF_EMAIL_PORT: ${MF_EMAIL_PORT:-587}
+      MF_EMAIL_TEMPLATES_DIR: /
+      MF_EMAIL_USERNAME: ${MF_EMAIL_USERNAME:-}
+      MF_HOST: https://mainflux.lab.scalewest.com
+      MF_INVITE_DURATION: 168h
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_THINGS_CA_CERTS: ''
+      MF_THINGS_CLIENT_TLS: 'false'
+      MF_USERS_ADMIN_EMAIL: ${MF_USERS_ADMIN_EMAIL:-admin@example.com}
+      MF_USERS_CA_CERTS: ''
+      MF_USERS_CLIENT_TLS: 'false'
+      MF_USERS_GRPC_URL: users:8184
+    expose:
+    - '8181'
+    image: mainfluxlabs/auth:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./templates/base.tmpl
+      target: /base.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/auth/org_invite.tmpl
+      target: /org_invite.tmpl
+      bind: {}
+  auth-db:
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-auth-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  auth-redis:
+    image: redis:6.2.2-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-auth-redis-volume
+      target: /data
+      volume: {}
+  broker:
+    command:
+    - -c
+    - /etc/nats/nats.conf
+    image: nats:2.10-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: nats
+      target: /etc/nats
+      bind: {}
+    - type: volume
+      source: mainfluxlabs-broker-volume
+      target: /data
+      volume: {}
+  certs:
+    depends_on:
+      certs-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_CERTS_CA_CERTS: ''
+      MF_CERTS_CHECK_TIME: 02:00
+      MF_CERTS_CLIENT_TLS: ''
+      MF_CERTS_CRL_PATH: /etc/ssl/certs/crl/crl.pem
+      MF_CERTS_DB: certs
+      MF_CERTS_DB_HOST: certs-db
+      MF_CERTS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_CERTS_DB_PORT: '5432'
+      MF_CERTS_DB_SSL_CERT: ''
+      MF_CERTS_DB_SSL_KEY: ''
+      MF_CERTS_DB_SSL_MODE: ''
+      MF_CERTS_DB_SSL_ROOT_CERT: ''
+      MF_CERTS_DB_USER: mainflux
+      MF_CERTS_ENCRYPT_KEY: ''
+      MF_CERTS_ES_URL: redis://es-redis:6379/0
+      MF_CERTS_HTTP_PORT: '8204'
+      MF_CERTS_LOG_LEVEL: debug
+      MF_CERTS_SERVER_CERT: ''
+      MF_CERTS_SERVER_KEY: ''
+      MF_CERTS_SIGN_CA_KEY_PATH: /etc/ssl/certs/ca.key
+      MF_CERTS_SIGN_CA_PATH: /etc/ssl/certs/ca.crt
+      MF_CERTS_SIGN_HOURS_VALID: 2048h
+      MF_CERTS_SIGN_RSA_BITS: '2048'
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_GRPC_TIMEOUT: 1s
+      MF_THINGS_GRPC_URL: things:8183
+    image: mainfluxlabs/certs:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./ssl/certs/ca.key
+      target: /etc/ssl/certs/ca.key
+      bind: {}
+    - type: bind
+      source: ./ssl/certs/ca.crt
+      target: /etc/ssl/certs/ca.crt
+      bind: {}
+    - type: volume
+      source: mainfluxlabs-crl-volume
+      target: /etc/ssl/certs/crl
+      volume: {}
+  certs-db:
+    environment:
+      POSTGRES_DB: certs
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-certs-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  coap-adapter:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_BROKER_URL: nats://broker:4222
+      MF_COAP_ADAPTER_LOG_LEVEL: debug
+      MF_COAP_ADAPTER_PORT: '5683'
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/coap:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    ports:
+    - 5683:5683/udp
+    - 5683:5683/tcp
+  converters:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_CONVERTERS_CA_CERTS: ''
+      MF_CONVERTERS_CLIENT_TLS: 'false'
+      MF_CONVERTERS_LOG_LEVEL: debug
+      MF_CONVERTERS_PORT: '8195'
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/converters:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  downlinks:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      downlinks-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_DOWNLINKS_DB: downlinks
+      MF_DOWNLINKS_DB_HOST: downlinks-db
+      MF_DOWNLINKS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_DOWNLINKS_DB_PORT: '5432'
+      MF_DOWNLINKS_DB_USER: mainflux
+      MF_DOWNLINKS_ES_URL: redis://es-redis:6379/0
+      MF_DOWNLINKS_HTTP_PORT: '9025'
+      MF_DOWNLINKS_LOG_LEVEL: debug
+      MF_DOWNLINKS_SERVER_CERT: ''
+      MF_DOWNLINKS_SERVER_KEY: ''
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/downlinks:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  downlinks-db:
+    environment:
+      POSTGRES_DB: downlinks
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-downlinks-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  es-redis:
+    image: redis:6.2.2-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-es-redis-volume
+      target: /data
+      volume: {}
+  filestore:
+    depends_on:
+      filestore-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_FILESTORE_DB: filestore
+      MF_FILESTORE_DB_HOST: filestore-db
+      MF_FILESTORE_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_FILESTORE_DB_PORT: '5432'
+      MF_FILESTORE_DB_SSL_CERT: ''
+      MF_FILESTORE_DB_SSL_MODE: disable
+      MF_FILESTORE_DB_USER: mainflux
+      MF_FILESTORE_ES_URL: redis://es-redis:6379/0
+      MF_FILESTORE_HTTP_PORT: '9022'
+      MF_FILESTORE_LOG_LEVEL: debug
+      MF_FILESTORE_SECRET: ${SERVICE_PASSWORD_64_FILESTORESECRET}
+      MF_FILESTORE_SERVER_CERT: ''
+      MF_FILESTORE_SERVER_KEY: ''
+      MF_FILESTORE_TLS: 'false'
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/filestore:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-filestore-volume
+      target: /files
+      volume: {}
+  filestore-db:
+    environment:
+      POSTGRES_DB: filestore
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-filestore-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  http-adapter:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_BROKER_URL: nats://broker:4222
+      MF_HTTP_ADAPTER_LOG_LEVEL: debug
+      MF_HTTP_ADAPTER_PORT: '8185'
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/http:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    networks:
+      mainfluxlabs-base-net: null
+  modbus:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      modbus-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_MODBUS_DB: modbus
+      MF_MODBUS_DB_HOST: modbus-db
+      MF_MODBUS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_MODBUS_DB_PORT: '5432'
+      MF_MODBUS_DB_USER: mainflux
+      MF_MODBUS_ES_URL: redis://es-redis:6379/0
+      MF_MODBUS_HTTP_PORT: '9028'
+      MF_MODBUS_LOG_LEVEL: debug
+      MF_MODBUS_SERVER_CERT: ''
+      MF_MODBUS_SERVER_KEY: ''
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/modbus:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  modbus-db:
+    environment:
+      POSTGRES_DB: modbus
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-modbus-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-mqtt-broker-volume
+      target: /mosquitto/data
+      volume: {}
+    - type: bind
+      source: ./mosquitto/mosquitto.conf
+      target: /mosquitto/config/mosquitto.conf
+      bind: {}
+  mqtt-adapter:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      mosquitto:
+        condition: service_started
+        required: true
+      mqtt-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_CACHE_URL: redis://auth-redis:6379/0
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_MQTT_ADAPTER_DB: subscriptions
+      MF_MQTT_ADAPTER_DB_HOST: mqtt-db
+      MF_MQTT_ADAPTER_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_MQTT_ADAPTER_DB_PORT: '5432'
+      MF_MQTT_ADAPTER_DB_SSL_CERT: ''
+      MF_MQTT_ADAPTER_DB_SSL_MODE: disable
+      MF_MQTT_ADAPTER_DB_USER: mainflux
+      MF_MQTT_ADAPTER_ES_URL: redis://es-redis:6379/0
+      MF_MQTT_ADAPTER_FORWARDER: 'true'
+      MF_MQTT_ADAPTER_HTTP_PORT: '8285'
+      MF_MQTT_ADAPTER_LOG_LEVEL: debug
+      MF_MQTT_ADAPTER_MQTT_PORT: '1883'
+      MF_MQTT_ADAPTER_MQTT_TARGET_HEALTH_CHECK: ''
+      MF_MQTT_ADAPTER_MQTT_TARGET_HOST: mosquitto
+      MF_MQTT_ADAPTER_MQTT_TARGET_PORT: '1883'
+      MF_MQTT_ADAPTER_WS_PORT: '8080'
+      MF_MQTT_ADAPTER_WS_TARGET_HOST: mosquitto
+      MF_MQTT_ADAPTER_WS_TARGET_PORT: '8080'
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/mqtt:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  mqtt-db:
+    environment:
+      POSTGRES_DB: subscriptions
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-mqtt-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  nginx:
+    depends_on:
+      http-adapter:
+        condition: service_started
+        required: true
+      mqtt-adapter:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+      users:
+        condition: service_started
+        required: true
+    environment:
+      MF_ALARMS_DB_PORT: '5432'
+      MF_ALARMS_HTTP_PORT: '9026'
+      MF_AUDIT_DB_PORT: '5432'
+      MF_AUDIT_HTTP_PORT: '9030'
+      MF_AUTH_DB_PORT: '5432'
+      MF_AUTH_GRPC_PORT: '8181'
+      MF_AUTH_HTTP_PORT: '8189'
+      MF_CERTS_DB_PORT: '5432'
+      MF_CERTS_HTTP_PORT: '8204'
+      MF_COAP_ADAPTER_PORT: '5683'
+      MF_CONVERTERS_PORT: '8195'
+      MF_DOWNLINKS_DB_PORT: '5432'
+      MF_DOWNLINKS_HTTP_PORT: '9025'
+      MF_EMAIL_PORT: '2525'
+      MF_FILESTORE_DB_PORT: '5432'
+      MF_FILESTORE_HTTP_PORT: '9022'
+      MF_GRAFANA_PORT: '3000'
+      MF_HTTP_ADAPTER_PORT: '8185'
+      MF_JAEGER_PORT: '6831'
+      MF_MODBUS_DB_PORT: '5432'
+      MF_MODBUS_HTTP_PORT: '9028'
+      MF_MQTT_ADAPTER_DB_PORT: '5432'
+      MF_MQTT_ADAPTER_HTTP_PORT: '8285'
+      MF_MQTT_ADAPTER_MQTT_PORT: '1883'
+      MF_MQTT_ADAPTER_WS_PORT: '8080'
+      MF_MQTT_BROKER_PORT: '1883'
+      MF_MQTT_BROKER_WS_PORT: '8080'
+      MF_NATS_PORT: '4222'
+      MF_NGINX_HTTP_PORT: '80'
+      MF_NGINX_MQTT_PORT: '1883'
+      MF_NGINX_MQTTS_PORT: '8883'
+      MF_NGINX_SSL_PORT: '443'
+      MF_POSTGRES_READER_DB_PORT: '5432'
+      MF_POSTGRES_READER_GRPC_PORT: '8186'
+      MF_POSTGRES_READER_PORT: '8905'
+      MF_POSTGRES_WRITER_DB_PORT: '5432'
+      MF_POSTGRES_WRITER_PORT: '8900'
+      MF_RABBITMQ_HTTP_PORT: '15672'
+      MF_RABBITMQ_PORT: '5672'
+      MF_REDIS_TCP_PORT: '6379'
+      MF_RULES_DB_PORT: '5432'
+      MF_RULES_HTTP_PORT: '9027'
+      MF_SHADOWS_DB_PORT: '5432'
+      MF_SHADOWS_HTTP_PORT: '9031'
+      MF_SMPP_NOTIFIER_DB_PORT: '5432'
+      MF_SMPP_NOTIFIER_PORT: '9024'
+      MF_SMTP_NOTIFIER_DB_PORT: '5432'
+      MF_SMTP_NOTIFIER_PORT: '9023'
+      MF_THINGS_AUTH_GRPC_PORT: '8183'
+      MF_THINGS_AUTH_HTTP_PORT: '8989'
+      MF_THINGS_DB_PORT: '5432'
+      MF_THINGS_HTTP_PORT: '8182'
+      MF_TIMESCALE_READER_DB_PORT: '5432'
+      MF_TIMESCALE_READER_PORT: '8906'
+      MF_TIMESCALE_WRITER_DB_PORT: '5432'
+      MF_TIMESCALE_WRITER_PORT: '8902'
+      MF_UI_CONFIGS_DB_PORT: '5432'
+      MF_UI_CONFIGS_HTTP_PORT: '9029'
+      MF_UI_PORT: '3000'
+      MF_USERS_DB_PORT: '5432'
+      MF_USERS_GRPC_PORT: '8184'
+      MF_USERS_HTTP_PORT: '8180'
+      MF_WEBHOOKS_DB_PORT: '5432'
+      MF_WEBHOOKS_HTTP_PORT: '9021'
+      MF_WS_ADAPTER_PORT: '8190'
+      SERVICE_FQDN_NGINX_80:
+    image: nginx:1.20.0-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./nginx/nginx-key.conf
+      target: /etc/nginx/nginx.conf.template
+      bind: {}
+    - type: bind
+      source: ./nginx/entrypoint.sh
+      target: /docker-entrypoint.d/entrypoint.sh
+      bind: {}
+    - type: bind
+      source: ./nginx/snippets
+      target: /etc/nginx/snippets
+      bind: {}
+    - type: bind
+      source: ./ssl/authorization.js
+      target: /etc/nginx/authorization.js
+      bind: {}
+    - type: bind
+      source: ./ssl/certs/mainfluxlabs-server.crt
+      target: /etc/ssl/certs/mainfluxlabs-server.crt
+      bind: {}
+    - type: bind
+      source: ./ssl/certs/ca.crt
+      target: /etc/ssl/certs/ca.crt
+      bind: {}
+    - type: bind
+      source: ./ssl/certs/mainfluxlabs-server.key
+      target: /etc/ssl/private/mainfluxlabs-server.key
+      bind: {}
+    - type: bind
+      source: ./ssl/dhparam.pem
+      target: /etc/ssl/certs/dhparam.pem
+      bind: {}
+    - type: volume
+      source: mainfluxlabs-crl-volume
+      target: /etc/ssl/certs/crl
+      volume: {}
+    ports:
+    - 1883:1883
+    - 8883:8883
+  rules:
+    depends_on:
+      rules-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_RULES_DB: rules
+      MF_RULES_DB_HOST: rules-db
+      MF_RULES_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_RULES_DB_PORT: '5432'
+      MF_RULES_DB_USER: mainflux
+      MF_RULES_ES_URL: redis://es-redis:6379/0
+      MF_RULES_HTTP_PORT: '9027'
+      MF_RULES_LOG_LEVEL: debug
+      MF_RULES_SERVER_CERT: ''
+      MF_RULES_SERVER_KEY: ''
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/rules:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  rules-db:
+    environment:
+      POSTGRES_DB: rules
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-rules-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  shadows:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      shadows-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_SHADOWS_DB: shadows
+      MF_SHADOWS_DB_HOST: shadows-db
+      MF_SHADOWS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_SHADOWS_DB_PORT: '5432'
+      MF_SHADOWS_DB_USER: mainflux
+      MF_SHADOWS_ES_URL: redis://es-redis:6379/0
+      MF_SHADOWS_HTTP_PORT: '9031'
+      MF_SHADOWS_LOG_LEVEL: debug
+      MF_SHADOWS_SERVER_CERT: ''
+      MF_SHADOWS_SERVER_KEY: ''
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/shadows:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  shadows-db:
+    environment:
+      POSTGRES_DB: shadows
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-shadows-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  smtp-notifier:
+    depends_on:
+      smtp-notifier-db:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_EMAIL_FROM_ADDRESS: ${MF_EMAIL_FROM_ADDRESS:-noreply@scalewest.com}
+      MF_EMAIL_FROM_NAME: ${MF_EMAIL_FROM_NAME:-Mainflux}
+      MF_EMAIL_HOST: ${MF_EMAIL_HOST:-smtp.example.com}
+      MF_EMAIL_PASSWORD: ${MF_EMAIL_PASSWORD:-}
+      MF_EMAIL_PORT: ${MF_EMAIL_PORT:-587}
+      MF_EMAIL_TEMPLATES_DIR: /
+      MF_EMAIL_USERNAME: ${MF_EMAIL_USERNAME:-}
+      MF_JAEGER_URL: jaeger:6831
+      MF_SMTP_NOTIFIER_DB: smtp-notifiers
+      MF_SMTP_NOTIFIER_DB_HOST: smtp-notifier-db
+      MF_SMTP_NOTIFIER_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_SMTP_NOTIFIER_DB_PORT: '5432'
+      MF_SMTP_NOTIFIER_DB_USER: mainflux
+      MF_SMTP_NOTIFIER_ES_URL: redis://es-redis:6379/0
+      MF_SMTP_NOTIFIER_FROM_ADDR: example@example.com
+      MF_SMTP_NOTIFIER_LOG_LEVEL: debug
+      MF_SMTP_NOTIFIER_PORT: '9023'
+      MF_SMTP_NOTIFIER_SERVER_CERT: ''
+      MF_SMTP_NOTIFIER_SERVER_KEY: ''
+      MF_SMTP_NOTIFIER_THINGS_CA_CERTS: ''
+      MF_SMTP_NOTIFIER_THINGS_TLS: 'false'
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+    image: mainfluxlabs/smtp-notifier:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./templates/base.tmpl
+      target: /base.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/smtp/notification.tmpl
+      target: /notification.tmpl
+      bind: {}
+  smtp-notifier-db:
+    environment:
+      POSTGRES_DB: smtp-notifiers
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-smtp-notifier-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  things:
+    depends_on:
+      auth:
+        condition: service_started
+        required: true
+      things-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_EMAIL_FROM_ADDRESS: ${MF_EMAIL_FROM_ADDRESS:-noreply@scalewest.com}
+      MF_EMAIL_FROM_NAME: ${MF_EMAIL_FROM_NAME:-Mainflux}
+      MF_EMAIL_HOST: ${MF_EMAIL_HOST:-smtp.example.com}
+      MF_EMAIL_PASSWORD: ${MF_EMAIL_PASSWORD:-}
+      MF_EMAIL_PORT: ${MF_EMAIL_PORT:-587}
+      MF_EMAIL_TEMPLATES_DIR: /
+      MF_EMAIL_USERNAME: ${MF_EMAIL_USERNAME:-}
+      MF_HOST: https://mainflux.lab.scalewest.com
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_PORT: '8183'
+      MF_THINGS_AUTH_HTTP_PORT: '8989'
+      MF_THINGS_CACHE_URL: redis://auth-redis:6379/0
+      MF_THINGS_DB: things
+      MF_THINGS_DB_HOST: things-db
+      MF_THINGS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_THINGS_DB_PORT: '5432'
+      MF_THINGS_DB_USER: mainflux
+      MF_THINGS_ES_BUFFER_SIZE: '10000'
+      MF_THINGS_ES_STREAM_MAXLEN: '100000'
+      MF_THINGS_ES_URL: redis://es-redis:6379/0
+      MF_THINGS_HTTP_PORT: '8182'
+      MF_THINGS_LOG_LEVEL: debug
+      MF_USERS_CA_CERTS: ''
+      MF_USERS_CLIENT_TLS: 'false'
+      MF_USERS_GRPC_URL: users:8184
+    image: mainfluxlabs/things:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./templates/base.tmpl
+      target: /base.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/things/group_membership.tmpl
+      target: /group_membership.tmpl
+      bind: {}
+  things-db:
+    environment:
+      POSTGRES_DB: things
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-things-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  timescale-db:
+    environment:
+      POSTGRES_DB: mainflux
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: timescale/timescaledb:2.15.3-pg16
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-timescale-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  timescale-reader:
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_TIMESCALE_READER_CA_CERTS: ''
+      MF_TIMESCALE_READER_CLIENT_TLS: 'false'
+      MF_TIMESCALE_READER_DB: mainflux
+      MF_TIMESCALE_READER_DB_HOST: timescale-db
+      MF_TIMESCALE_READER_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_TIMESCALE_READER_DB_PORT: '5432'
+      MF_TIMESCALE_READER_DB_SSL_CERT: ''
+      MF_TIMESCALE_READER_DB_SSL_KEY: ''
+      MF_TIMESCALE_READER_DB_SSL_MODE: disable
+      MF_TIMESCALE_READER_DB_SSL_ROOT_CERT: ''
+      MF_TIMESCALE_READER_DB_USER: mainflux
+      MF_TIMESCALE_READER_ES_URL: redis://es-redis:6379/0
+      MF_TIMESCALE_READER_LOG_LEVEL: debug
+      MF_TIMESCALE_READER_PORT: '8906'
+    image: mainfluxlabs/timescale-reader:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  timescale-writer:
+    depends_on:
+      timescale-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_BROKER_URL: nats://broker:4222
+      MF_TIMESCALE_WRITER_DB: mainflux
+      MF_TIMESCALE_WRITER_DB_HOST: timescale-db
+      MF_TIMESCALE_WRITER_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_TIMESCALE_WRITER_DB_PORT: '5432'
+      MF_TIMESCALE_WRITER_DB_SSL_CERT: ''
+      MF_TIMESCALE_WRITER_DB_SSL_KEY: ''
+      MF_TIMESCALE_WRITER_DB_SSL_MODE: disable
+      MF_TIMESCALE_WRITER_DB_SSL_ROOT_CERT: ''
+      MF_TIMESCALE_WRITER_DB_USER: mainflux
+      MF_TIMESCALE_WRITER_LOG_LEVEL: debug
+      MF_TIMESCALE_WRITER_PORT: '8902'
+    image: mainfluxlabs/timescale-writer:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  ui:
+    environment:
+      MF_UI_PORT: '3000'
+      MF_USERS_SELF_REGISTER_ENABLED: 'true'
+    image: mainfluxlabs/ui:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  uiconfigs:
+    depends_on:
+      uiconfigs-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_UI_CONFIGS_DB: uiconfigs
+      MF_UI_CONFIGS_DB_HOST: uiconfigs-db
+      MF_UI_CONFIGS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_UI_CONFIGS_DB_PORT: '5432'
+      MF_UI_CONFIGS_DB_USER: mainflux
+      MF_UI_CONFIGS_ES_URL: redis://es-redis:6379/0
+      MF_UI_CONFIGS_HTTP_PORT: '9029'
+      MF_UI_CONFIGS_LOG_LEVEL: debug
+      MF_UI_CONFIGS_SERVER_CERT: ''
+      MF_UI_CONFIGS_SERVER_KEY: ''
+    image: mainfluxlabs/uiconfigs:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  uiconfigs-db:
+    environment:
+      POSTGRES_DB: uiconfigs
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-uiconfigs-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  users:
+    depends_on:
+      auth:
+        condition: service_started
+        required: true
+      users-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_EMAIL_FROM_ADDRESS: ${MF_EMAIL_FROM_ADDRESS:-noreply@scalewest.com}
+      MF_EMAIL_FROM_NAME: ${MF_EMAIL_FROM_NAME:-Mainflux}
+      MF_EMAIL_HOST: ${MF_EMAIL_HOST:-smtp.example.com}
+      MF_EMAIL_PASSWORD: ${MF_EMAIL_PASSWORD:-}
+      MF_EMAIL_PORT: ${MF_EMAIL_PORT:-587}
+      MF_EMAIL_TEMPLATES_DIR: /
+      MF_EMAIL_USERNAME: ${MF_EMAIL_USERNAME:-}
+      MF_GITHUB_CLIENT_ID: github-client-id
+      MF_GITHUB_CLIENT_SECRET: github-client-secret
+      MF_GITHUB_REDIRECT_URL: /users/oauth/github/callback
+      MF_GITHUB_USER_EMAILS: https://api.github.com/user/emails
+      MF_GITHUB_USER_INFO: https://api.github.com/user
+      MF_GOOGLE_CLIENT_ID: google-client-id.apps.googleusercontent.com
+      MF_GOOGLE_CLIENT_SECRET: google-client-secret
+      MF_GOOGLE_REDIRECT_URL: /users/oauth/google/callback
+      MF_GOOGLE_USER_INFO: https://www.googleapis.com/oauth2/v2/userinfo
+      MF_HOST: https://mainflux.lab.scalewest.com
+      MF_INVITE_DURATION: 168h
+      MF_JAEGER_URL: jaeger:6831
+      MF_REDIRECT_LOGIN_URL: /auth/login
+      MF_REQUIRE_EMAIL_VERIFICATION: 'false'
+      MF_USERS_ADMIN_EMAIL: ${MF_USERS_ADMIN_EMAIL:-admin@example.com}
+      MF_USERS_ADMIN_PASSWORD: ${SERVICE_PASSWORD_MFADMIN}
+      MF_USERS_DB: users
+      MF_USERS_DB_HOST: users-db
+      MF_USERS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_USERS_DB_PORT: '5432'
+      MF_USERS_DB_USER: mainflux
+      MF_USERS_GRPC_PORT: '8184'
+      MF_USERS_HTTP_PORT: '8180'
+      MF_USERS_LOG_LEVEL: debug
+      MF_USERS_SELF_REGISTER_ENABLED: 'true'
+    expose:
+    - '8184'
+    image: mainfluxlabs/users:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: bind
+      source: ./templates/base.tmpl
+      target: /base.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/users/email_verification.tmpl
+      target: /email_verification.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/users/password_reset.tmpl
+      target: /password_reset.tmpl
+      bind: {}
+    - type: bind
+      source: ./templates/users/platform_invite.tmpl
+      target: /platform_invite.tmpl
+      bind: {}
+  users-db:
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-users-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  webhooks:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+      webhooks-db:
+        condition: service_started
+        required: true
+    environment:
+      MF_AUTH_GRPC_TIMEOUT: 1s
+      MF_AUTH_GRPC_URL: auth:8181
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_WEBHOOKS_DB: webhooks
+      MF_WEBHOOKS_DB_HOST: webhooks-db
+      MF_WEBHOOKS_DB_PASS: ${SERVICE_PASSWORD_MFDB}
+      MF_WEBHOOKS_DB_PORT: '5432'
+      MF_WEBHOOKS_DB_USER: mainflux
+      MF_WEBHOOKS_ES_URL: redis://es-redis:6379/0
+      MF_WEBHOOKS_HTTP_PORT: '9021'
+      MF_WEBHOOKS_LOG_LEVEL: debug
+      MF_WEBHOOKS_SERVER_CERT: ''
+      MF_WEBHOOKS_SERVER_KEY: ''
+    image: mainfluxlabs/webhooks:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+  webhooks-db:
+    environment:
+      POSTGRES_DB: webhooks
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
+      POSTGRES_USER: mainflux
+    image: postgres:13.3-alpine
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+    volumes:
+    - type: volume
+      source: mainfluxlabs-webhooks-db-volume
+      target: /var/lib/postgresql/data
+      volume: {}
+  ws-adapter:
+    depends_on:
+      broker:
+        condition: service_started
+        required: true
+      things:
+        condition: service_started
+        required: true
+    environment:
+      MF_BROKER_URL: nats://broker:4222
+      MF_JAEGER_URL: jaeger:6831
+      MF_THINGS_AUTH_GRPC_TIMEOUT: 1s
+      MF_THINGS_AUTH_GRPC_URL: things:8183
+      MF_WS_ADAPTER_LOG_LEVEL: debug
+      MF_WS_ADAPTER_PORT: '8190'
+    image: mainfluxlabs/ws:v0.43.0
+    networks:
+      mainfluxlabs-base-net: null
+    restart: on-failure
+networks:
+  mainfluxlabs-base-net:
+    name: docker_mainfluxlabs-base-net
+    driver: bridge
+volumes:
+  mainfluxlabs-alarms-db-volume:
+    name: docker_mainfluxlabs-alarms-db-volume
+  mainfluxlabs-audit-db-volume:
+    name: docker_mainfluxlabs-audit-db-volume
+  mainfluxlabs-auth-db-volume:
+    name: docker_mainfluxlabs-auth-db-volume
+  mainfluxlabs-auth-redis-volume:
+    name: docker_mainfluxlabs-auth-redis-volume
+  mainfluxlabs-broker-volume:
+    name: docker_mainfluxlabs-broker-volume
+  mainfluxlabs-certs-db-volume:
+    name: docker_mainfluxlabs-certs-db-volume
+  mainfluxlabs-crl-volume:
+    name: docker_mainfluxlabs-crl-volume
+  mainfluxlabs-downlinks-db-volume:
+    name: docker_mainfluxlabs-downlinks-db-volume
+  mainfluxlabs-es-redis-volume:
+    name: docker_mainfluxlabs-es-redis-volume
+  mainfluxlabs-filestore-db-volume:
+    name: docker_mainfluxlabs-filestore-db-volume
+  mainfluxlabs-filestore-volume:
+    name: docker_mainfluxlabs-filestore-volume
+  mainfluxlabs-modbus-db-volume:
+    name: docker_mainfluxlabs-modbus-db-volume
+  mainfluxlabs-mqtt-broker-volume:
+    name: docker_mainfluxlabs-mqtt-broker-volume
+  mainfluxlabs-mqtt-db-volume:
+    name: docker_mainfluxlabs-mqtt-db-volume
+  mainfluxlabs-rules-db-volume:
+    name: docker_mainfluxlabs-rules-db-volume
+  mainfluxlabs-shadows-db-volume:
+    name: docker_mainfluxlabs-shadows-db-volume
+  mainfluxlabs-smtp-notifier-db-volume:
+    name: docker_mainfluxlabs-smtp-notifier-db-volume
+  mainfluxlabs-things-db-volume:
+    name: docker_mainfluxlabs-things-db-volume
+  mainfluxlabs-timescale-db-volume:
+    name: docker_mainfluxlabs-timescale-db-volume
+  mainfluxlabs-uiconfigs-db-volume:
+    name: docker_mainfluxlabs-uiconfigs-db-volume
+  mainfluxlabs-users-db-volume:
+    name: docker_mainfluxlabs-users-db-volume
+  mainfluxlabs-webhooks-db-volume:
+    name: docker_mainfluxlabs-webhooks-db-volume
