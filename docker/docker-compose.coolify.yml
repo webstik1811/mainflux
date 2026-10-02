@@ -666,9 +666,6 @@ services:
       source: mainfluxlabs-crl-volume
       target: /etc/ssl/certs/crl
       volume: {}
-    ports:
-    - 1883:1883
-    - 8883:8883
   rules:
     depends_on:
       rules-db:
@@ -1136,6 +1133,26 @@ services:
     networks:
       mainfluxlabs-base-net: null
     restart: on-failure
+  mqtt-proxy:
+    image: alpine/socat:1.8.0.3
+    command: TCP-LISTEN:1883,fork,reuseaddr TCP:nginx:1883
+    restart: on-failure
+    depends_on:
+    - nginx
+    ports:
+    - 1883:1883
+    networks:
+    - mainfluxlabs-base-net
+  mqtts-proxy:
+    image: alpine/socat:1.8.0.3
+    command: TCP-LISTEN:8883,fork,reuseaddr TCP:nginx:8883
+    restart: on-failure
+    depends_on:
+    - nginx
+    ports:
+    - 8883:8883
+    networks:
+    - mainfluxlabs-base-net
 networks:
   mainfluxlabs-base-net:
     name: docker_mainfluxlabs-base-net

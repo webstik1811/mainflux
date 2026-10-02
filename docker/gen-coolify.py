@@ -48,8 +48,8 @@ os.remove(env_path)
 c = yaml.safe_load(out)
 c.pop("name", None)
 
+# nginx must publish no host ports: Coolify routes the domain to the first published port.
 KEEP_PORTS = {
-    "nginx": ["1883:1883", "8883:8883"],
     "coap-adapter": ["5683:5683/udp", "5683:5683/tcp"],
 }
 for name, s in c["services"].items():
@@ -64,6 +64,18 @@ for name, s in c["services"].items():
         env = {k: v for k, v in s.get("environment", {}).items() if k.endswith("_PORT") or k == "MF_MQTT_CLUSTER"}
         env["SERVICE_FQDN_NGINX_80"] = None
         s["environment"] = env
+
+# MQTT/MQTTS reach nginx's stream proxy through plain TCP forwarders (TLS stays end-to-end to nginx)
+net = list(c["services"]["nginx"]["networks"])[0]
+for name, port in (("mqtt-proxy", 1883), ("mqtts-proxy", 8883)):
+    c["services"][name] = {
+        "image": "alpine/socat:1.8.0.3",
+        "command": f"TCP-LISTEN:{port},fork,reuseaddr TCP:nginx:{port}",
+        "restart": "on-failure",
+        "depends_on": ["nginx"],
+        "ports": [f"{port}:{port}"],
+        "networks": [net],
+    }
 
 text = yaml.safe_dump(c, sort_keys=False, width=1000, default_flow_style=False)
 text = text.replace("SERVICE_FQDN_NGINX_80: null", "SERVICE_FQDN_NGINX_80:")
