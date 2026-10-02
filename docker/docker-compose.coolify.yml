@@ -1155,50 +1155,27 @@ services:
     - mainfluxlabs-base-net
 networks:
   mainfluxlabs-base-net:
-    name: docker_mainfluxlabs-base-net
     driver: bridge
 volumes:
-  mainfluxlabs-alarms-db-volume:
-    name: docker_mainfluxlabs-alarms-db-volume
-  mainfluxlabs-audit-db-volume:
-    name: docker_mainfluxlabs-audit-db-volume
-  mainfluxlabs-auth-db-volume:
-    name: docker_mainfluxlabs-auth-db-volume
-  mainfluxlabs-auth-redis-volume:
-    name: docker_mainfluxlabs-auth-redis-volume
-  mainfluxlabs-broker-volume:
-    name: docker_mainfluxlabs-broker-volume
-  mainfluxlabs-certs-db-volume:
-    name: docker_mainfluxlabs-certs-db-volume
-  mainfluxlabs-crl-volume:
-    name: docker_mainfluxlabs-crl-volume
-  mainfluxlabs-downlinks-db-volume:
-    name: docker_mainfluxlabs-downlinks-db-volume
-  mainfluxlabs-es-redis-volume:
-    name: docker_mainfluxlabs-es-redis-volume
-  mainfluxlabs-filestore-db-volume:
-    name: docker_mainfluxlabs-filestore-db-volume
-  mainfluxlabs-filestore-volume:
-    name: docker_mainfluxlabs-filestore-volume
-  mainfluxlabs-modbus-db-volume:
-    name: docker_mainfluxlabs-modbus-db-volume
-  mainfluxlabs-mqtt-broker-volume:
-    name: docker_mainfluxlabs-mqtt-broker-volume
-  mainfluxlabs-mqtt-db-volume:
-    name: docker_mainfluxlabs-mqtt-db-volume
-  mainfluxlabs-rules-db-volume:
-    name: docker_mainfluxlabs-rules-db-volume
-  mainfluxlabs-shadows-db-volume:
-    name: docker_mainfluxlabs-shadows-db-volume
-  mainfluxlabs-smtp-notifier-db-volume:
-    name: docker_mainfluxlabs-smtp-notifier-db-volume
-  mainfluxlabs-things-db-volume:
-    name: docker_mainfluxlabs-things-db-volume
-  mainfluxlabs-timescale-db-volume:
-    name: docker_mainfluxlabs-timescale-db-volume
-  mainfluxlabs-uiconfigs-db-volume:
-    name: docker_mainfluxlabs-uiconfigs-db-volume
-  mainfluxlabs-users-db-volume:
-    name: docker_mainfluxlabs-users-db-volume
-  mainfluxlabs-webhooks-db-volume:
-    name: docker_mainfluxlabs-webhooks-db-volume
+  mainfluxlabs-alarms-db-volume: {}
+  mainfluxlabs-audit-db-volume: {}
+  mainfluxlabs-auth-db-volume: {}
+  mainfluxlabs-auth-redis-volume: {}
+  mainfluxlabs-broker-volume: {}
+  mainfluxlabs-certs-db-volume: {}
+  mainfluxlabs-crl-volume: {}
+  mainfluxlabs-downlinks-db-volume: {}
+  mainfluxlabs-es-redis-volume: {}
+  mainfluxlabs-filestore-db-volume: {}
+  mainfluxlabs-filestore-volume: {}
+  mainfluxlabs-modbus-db-volume: {}
+  mainfluxlabs-mqtt-broker-volume: {}
+  mainfluxlabs-mqtt-db-volume: {}
+  mainfluxlabs-rules-db-volume: {}
+  mainfluxlabs-shadows-db-volume: {}
+  mainfluxlabs-smtp-notifier-db-volume: {}
+  mainfluxlabs-things-db-volume: {}
+  mainfluxlabs-timescale-db-volume: {}
+  mainfluxlabs-uiconfigs-db-volume: {}
+  mainfluxlabs-users-db-volume: {}
+  mainfluxlabs-webhooks-db-volume: {}

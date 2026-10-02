@@ -47,6 +47,11 @@ out = out.stdout
 os.remove(env_path)
 c = yaml.safe_load(out)
 c.pop("name", None)
+# drop compose-project-derived names (docker_...) so Coolify scopes networks/volumes per resource
+for section in ("networks", "volumes"):
+    for v in (c.get(section) or {}).values():
+        if isinstance(v, dict):
+            v.pop("name", None)
 
 # nginx must publish no host ports: Coolify routes the domain to the first published port.
 KEEP_PORTS = {
