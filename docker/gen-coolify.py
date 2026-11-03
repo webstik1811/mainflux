@@ -86,7 +86,7 @@ for n in pg:
     del S[n]
 S["mainflux-db"] = {
     "image": images.pop(),
-    "restart": "on-failure",
+    "restart": "unless-stopped",
     "environment": {
         "POSTGRES_USER": users.pop(),
         "POSTGRES_PASSWORD": ph("SERVICE_PASSWORD_MFDB"),
@@ -104,7 +104,7 @@ S["mqtt-proxy"] = {
     "image": "alpine/socat:1.8.0.3",
     "entrypoint": ["/bin/sh", "-c"],
     "command": ["socat TCP-LISTEN:8883,fork,reuseaddr TCP:nginx:8883 & exec socat TCP-LISTEN:1883,fork,reuseaddr TCP:nginx:1883"],
-    "restart": "on-failure",
+    "restart": "unless-stopped",
     "depends_on": ["nginx"],
     "ports": ["1883:1883", "8883:8883"],
     "networks": [net],
@@ -112,6 +112,8 @@ S["mqtt-proxy"] = {
 
 # 3) Compact syntax
 for n, sv in S.items():
+    # on-failure leaves containers that exit 0 on SIGTERM (Postgres, Redis, ...) down after a host reboot
+    sv["restart"] = "unless-stopped"
     dep = sv.get("depends_on")
     if isinstance(dep, dict):
         dep = list(dep)

@@ -12,7 +12,7 @@ services:
     image: mainfluxlabs/alarms:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   audit:
     depends_on:
     - auth
@@ -24,7 +24,7 @@ services:
     image: mainfluxlabs/audit:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   auth:
     depends_on:
     - mainflux-db
@@ -43,7 +43,7 @@ services:
     image: mainfluxlabs/auth:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./templates/base.tmpl:/base.tmpl
     - ./templates/auth/org_invite.tmpl:/org_invite.tmpl
@@ -51,7 +51,7 @@ services:
     image: redis:6.2.2-alpine
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - mainfluxlabs-auth-redis-volume:/data
   broker:
@@ -61,7 +61,7 @@ services:
     image: nats:2.10-alpine
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./nats:/etc/nats
     - mainfluxlabs-broker-volume:/data
@@ -73,7 +73,7 @@ services:
     image: mainfluxlabs/certs:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./ssl/certs/ca.key:/etc/ssl/certs/ca.key
     - ./ssl/certs/ca.crt:/etc/ssl/certs/ca.crt
@@ -85,7 +85,7 @@ services:
     image: mainfluxlabs/coap:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     ports:
     - 5683:5683/udp
     - 5683:5683/tcp
@@ -96,7 +96,7 @@ services:
     image: mainfluxlabs/converters:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   downlinks:
     depends_on:
     - broker
@@ -107,12 +107,12 @@ services:
     image: mainfluxlabs/downlinks:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   es-redis:
     image: redis:6.2.2-alpine
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - mainfluxlabs-es-redis-volume:/data
   filestore:
@@ -125,7 +125,7 @@ services:
     image: mainfluxlabs/filestore:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - mainfluxlabs-filestore-volume:/files
   http-adapter:
@@ -135,11 +135,12 @@ services:
     image: mainfluxlabs/http:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   jaeger:
     image: jaegertracing/all-in-one:1.53
     networks:
     - mainfluxlabs-base-net
+    restart: unless-stopped
   modbus:
     depends_on:
     - broker
@@ -150,12 +151,12 @@ services:
     image: mainfluxlabs/modbus:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   mosquitto:
     image: eclipse-mosquitto:2.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - mainfluxlabs-mqtt-broker-volume:/mosquitto/data
     - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
@@ -170,7 +171,7 @@ services:
     image: mainfluxlabs/mqtt:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   nginx:
     depends_on:
     - http-adapter
@@ -247,7 +248,7 @@ services:
     image: nginx:1.20.0-alpine
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./nginx/nginx-key.conf:/etc/nginx/nginx.conf.template
     - ./nginx/entrypoint.sh:/docker-entrypoint.d/entrypoint.sh
@@ -267,7 +268,7 @@ services:
     image: mainfluxlabs/rules:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   shadows:
     depends_on:
     - broker
@@ -278,7 +279,7 @@ services:
     image: mainfluxlabs/shadows:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   smtp-notifier:
     depends_on:
     - mainflux-db
@@ -294,7 +295,7 @@ services:
     image: mainfluxlabs/smtp-notifier:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./templates/base.tmpl:/base.tmpl
     - ./templates/smtp/notification.tmpl:/notification.tmpl
@@ -313,7 +314,7 @@ services:
     image: mainfluxlabs/things:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./templates/base.tmpl:/base.tmpl
     - ./templates/things/group_membership.tmpl:/group_membership.tmpl
@@ -325,7 +326,7 @@ services:
     image: timescale/timescaledb:2.15.3-pg16
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - mainfluxlabs-timescale-db-volume:/var/lib/postgresql/data
   timescale-reader:
@@ -334,7 +335,7 @@ services:
     image: mainfluxlabs/timescale-reader:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   timescale-writer:
     depends_on:
     - timescale-db
@@ -343,12 +344,12 @@ services:
     image: mainfluxlabs/timescale-writer:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   ui:
     image: mainfluxlabs/ui:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   uiconfigs:
     depends_on:
     - mainflux-db
@@ -357,7 +358,7 @@ services:
     image: mainfluxlabs/uiconfigs:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   users:
     depends_on:
     - auth
@@ -377,7 +378,7 @@ services:
     image: mainfluxlabs/users:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - ./templates/base.tmpl:/base.tmpl
     - ./templates/users/email_verification.tmpl:/email_verification.tmpl
@@ -393,7 +394,7 @@ services:
     image: mainfluxlabs/webhooks:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   ws-adapter:
     depends_on:
     - broker
@@ -401,10 +402,10 @@ services:
     image: mainfluxlabs/ws:v0.43.0
     networks:
     - mainfluxlabs-base-net
-    restart: on-failure
+    restart: unless-stopped
   mainflux-db:
     image: postgres:13.3-alpine
-    restart: on-failure
+    restart: unless-stopped
     environment:
       POSTGRES_USER: mainflux
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_MFDB}
@@ -438,7 +439,7 @@ services:
     - -c
     command:
     - socat TCP-LISTEN:8883,fork,reuseaddr TCP:nginx:8883 & exec socat TCP-LISTEN:1883,fork,reuseaddr TCP:nginx:1883
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
     - nginx
     ports:
