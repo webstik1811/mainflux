@@ -168,10 +168,16 @@ services:
     - things
     environment:
       MF_MQTT_ADAPTER_DB_PASS: ${SERVICE_PASSWORD_MFDB}
-    image: mainfluxlabs/mqtt:v0.43.0
+    image: optymass/mainflux-mqtt:v0.43.0-optymass.1
     networks:
     - mainfluxlabs-base-net
     restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        SVC: mqtt
+    pull_policy: build
   nginx:
     depends_on:
     - http-adapter

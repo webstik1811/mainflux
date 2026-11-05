@@ -446,48 +446,27 @@ func (h *handler) getSubscriptions(c *session.Client, topics *[]string) ([]Subsc
 	return subs, nil
 }
 
-// validateCustomTopic enforces authorization only for topics that match
-// custom patterns (things/thingID/commands, groups/groupID/commands, things/thingID/messages).
+// validateCustomTopic authorizes one subscription topic of a thing. Deny by default (Optymass tenant isolation,
+// stage 3): a thing may subscribe only under its own namespaces, because the MQTT broker behind the adapter
+// delivers every topic to every matching subscriber regardless of the publisher's org.
+//
+// Allowed: things/<own thing id>/messages[/...] and things/<own thing id>/commands[/...], and
+// groups/<own group id>/commands[/...]. Wildcards are allowed only after these prefixes. Everything else is
+// rejected: "#", "+/...", any topic outside things/ and groups/, another thing's or group's topics, a wildcard
+// in the id position and leading-slash variants.
 func validateCustomTopic(topic, thingID, groupID string) error {
-	// Reject leading-slash variants of the custom topic patterns.
-	if strings.HasPrefix(topic, "/"+topicPrefixThings+"/") || strings.HasPrefix(topic, "/"+topicPrefixGroups+"/") {
-		return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s (leading slash not allowed)", topic))
-	}
-
-	if !strings.HasPrefix(topic, topicPrefixThings+"/") && !strings.HasPrefix(topic, topicPrefixGroups+"/") {
-		return nil
-	}
-
 	parts := strings.Split(topic, "/")
 	if len(parts) < 3 {
-		// Forbid multi-level wildcard at ID position, e.g. "things/#", "groups/#".
-		if len(parts) == 2 && parts[1] == "#" {
-			return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s (wildcard not allowed)", topic))
-		}
-		return nil
+		return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s (only own things/<id>/... or groups/<id>/commands/... topics)", topic))
 	}
 
 	prefix, id, suffix := parts[0], parts[1], parts[2]
-	switch id {
-	case "":
+	switch {
+	case prefix == topicPrefixThings && thingID != "" && id == thingID && (suffix == topicSuffixMessages || suffix == topicSuffixCommands):
 		return nil
-	case "+", "#":
-		return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s (wildcard not allowed)", topic))
+	case prefix == topicPrefixGroups && groupID != "" && id == groupID && suffix == topicSuffixCommands:
+		return nil
 	}
 
-	switch suffix {
-	case topicSuffixCommands:
-		if prefix == topicPrefixThings && id != thingID {
-			return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s for thing %s", topic, thingID))
-		}
-		if prefix == topicPrefixGroups && id != groupID {
-			return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s for group %s", topic, groupID))
-		}
-	case topicSuffixMessages:
-		if prefix == topicPrefixThings && id != thingID {
-			return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s for thing %s", topic, thingID))
-		}
-	}
-
-	return nil
+	return errors.Wrap(ErrUnauthorizedSubscriptionTopic, fmt.Errorf("%s for thing %s", topic, thingID))
 }

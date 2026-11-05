@@ -161,6 +161,13 @@ for db in $MF_DATABASES; do
 done
 """)
 
+# 5) Optymass: the MQTT adapter is built from this fork instead of mainfluxlabs/mqtt (tenant isolation: deny-by-default
+#    subscriptions in mqtt/handler.go validateCustomTopic). After step 4, so it still shares the common env.
+mqtt = S["mqtt-adapter"]
+mqtt["image"] = "optymass/mainflux-mqtt:v0.43.0-optymass.1"
+mqtt["build"] = {"context": "..", "dockerfile": "docker/Dockerfile", "args": {"SVC": "mqtt"}}
+mqtt["pull_policy"] = "build"
+
 text = yaml.safe_dump(c, sort_keys=False, width=1000, default_flow_style=False)
 text = re.sub(r" null$", "", text, flags=re.M)
 text = text.replace("SERVICE_FQDN_NGINX_80: null", "SERVICE_FQDN_NGINX_80:")

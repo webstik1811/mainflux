@@ -183,6 +183,12 @@ func strPtr(s string) *string { return &s }
 func TestAuthSubscribe(t *testing.T) {
 	handler := newHandler()
 
+	ownTopics := []string{"things/" + thingID + "/commands/#", "things/" + thingID + "/messages/_ack", "groups/" + groupID + "/commands/fw/update"}
+	allTopics := []string{"#"}
+	plusTopic := []string{"+/" + thingID + "/commands"}
+	freeTopic := []string{"/messages"}
+	otherNamespaceTopic := []string{"site/hyatt/telemetry"}
+	groupMessagesTopic := []string{"groups/" + groupID + "/messages"}
 	unauthorizedThingTopic := []string{"things/other-id/commands/led/room"}
 	unauthorizedGroupTopic := []string{"groups/other-group/commands/fw/update"}
 	thingWildcardTopic := []string{"things/+/messages"}
@@ -207,10 +213,40 @@ func TestAuthSubscribe(t *testing.T) {
 			topic:  nil,
 		},
 		{
-			desc:   "subscribe with active session and valid topics",
+			desc:   "subscribe with active session to own things and group topics",
 			client: &sessionClient,
 			err:    nil,
-			topic:  &topics,
+			topic:  &ownTopics,
+		},
+		{
+			desc:   "subscribe to everything (#) across tenants",
+			client: &sessionClient,
+			err:    mqtt.ErrUnauthorizedSubscriptionTopic,
+			topic:  &allTopics,
+		},
+		{
+			desc:   "subscribe with a top-level single-level wildcard",
+			client: &sessionClient,
+			err:    mqtt.ErrUnauthorizedSubscriptionTopic,
+			topic:  &plusTopic,
+		},
+		{
+			desc:   "subscribe to a free topic outside things/ and groups/",
+			client: &sessionClient,
+			err:    mqtt.ErrUnauthorizedSubscriptionTopic,
+			topic:  &freeTopic,
+		},
+		{
+			desc:   "subscribe to another namespace",
+			client: &sessionClient,
+			err:    mqtt.ErrUnauthorizedSubscriptionTopic,
+			topic:  &otherNamespaceTopic,
+		},
+		{
+			desc:   "subscribe to group messages (only group commands exist)",
+			client: &sessionClient,
+			err:    mqtt.ErrUnauthorizedSubscriptionTopic,
+			topic:  &groupMessagesTopic,
 		},
 		{
 			desc:   "subscribe to another thing's commands topic",
