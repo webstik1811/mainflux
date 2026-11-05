@@ -161,12 +161,15 @@ for db in $MF_DATABASES; do
 done
 """)
 
-# 5) Optymass: the MQTT adapter is built from this fork instead of mainfluxlabs/mqtt (tenant isolation: deny-by-default
-#    subscriptions in mqtt/handler.go validateCustomTopic). After step 4, so it still shares the common env.
+# 5) Optymass: the MQTT adapter runs our build of this fork instead of mainfluxlabs/mqtt (tenant isolation:
+#    deny-by-default subscriptions in mqtt/handler.go validateCustomTopic). After step 4, so it still shares the
+#    common env. Coolify's final `compose up` runs on the host without the repository, so a `build:` here cannot
+#    work; the image is built from this repo and loaded on the host (pull_policy never):
+#      docker build -f docker/Dockerfile --build-arg SVC=mqtt -t optymass/mainflux-mqtt:v0.43.0-optymass.1 .
+#      docker save optymass/mainflux-mqtt:v0.43.0-optymass.1 | gzip | ssh root@<host> "gunzip | docker load"
 mqtt = S["mqtt-adapter"]
 mqtt["image"] = "optymass/mainflux-mqtt:v0.43.0-optymass.1"
-mqtt["build"] = {"context": "..", "dockerfile": "docker/Dockerfile", "args": {"SVC": "mqtt"}}
-mqtt["pull_policy"] = "build"
+mqtt["pull_policy"] = "never"
 
 text = yaml.safe_dump(c, sort_keys=False, width=1000, default_flow_style=False)
 text = re.sub(r" null$", "", text, flags=re.M)

@@ -172,12 +172,7 @@ services:
     networks:
     - mainfluxlabs-base-net
     restart: unless-stopped
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        SVC: mqtt
-    pull_policy: build
+    pull_policy: never
   nginx:
     depends_on:
     - http-adapter
